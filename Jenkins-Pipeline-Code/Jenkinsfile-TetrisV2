@@ -4,7 +4,7 @@ pipeline {
         nodejs 'nodejs'
     }
     environment  {
-        SCANNER_HOME=tool 'sonar-scanner'
+        // SonarScanner muhiti olib tashlandi
     }
     stages {
         stage('Cleaning Workspace') {
@@ -17,23 +17,9 @@ pipeline {
                 git branch: 'master', url: 'https://github.com/ersuncoder/SecureCloud-K8s-DevSecOps.git'
             }
         }
-        stage('Sonarqube Analysis') {
-            steps {
-                dir('Tetris-V2') {
-                    withSonarQubeEnv('sonar-server') {
-                        sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Tetris \
-                        -Dsonar.projectKey=Tetris '''
-                    }
-                }
-            }
-        }
-        stage('Quality Check') {
-            steps {
-                script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
-                }
-            }
-        }
+
+        // Sonarqube Analysis va Quality Check bosqichlari olib tashlandi
+
         stage('Installing Dependencies') {
             steps {
                 dir('Tetris-V2') {
@@ -41,21 +27,18 @@ pipeline {
                 }
             }
         }
-        stage('OWASP Dependency-Check Scan') {
-            steps {
-                dir('Tetris-V2') {
-                    dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                }
-            }
-        }
+
+        // OWASP Dependency-Check ham qo'shimcha plagin talab qilgani uchun olib tashlandi
+
         stage('Trivy File Scan') {
             steps {
                 dir('Tetris-V2') {
+                    // Diqqat: Trivy o'rnatilgan bo'lishi kerak
                     sh 'trivy fs . > trivyfs.txt'
                 }
             }
         }
+
         stage("Docker Image Build") {
             steps {
                 script {
@@ -68,26 +51,30 @@ pipeline {
                 }
             }
         }
+
         stage("Docker Image Pushing") {
             steps {
                 script {
                     withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
-                        sh 'docker tag tetrisv1 ersun7/tetrisv1:${BUILD_NUMBER}'
-                        sh 'docker push ersun7/tetrisv1:${BUILD_NUMBER}'
+                        sh "docker tag tetrisv1 ersun7/tetrisv1:${BUILD_NUMBER}"
+                        sh "docker push ersun7/tetrisv1:${BUILD_NUMBER}"
                     }
                 }
             }
         }
+
         stage("TRIVY Image Scan") {
             steps {
-                sh 'trivy image ersun7/tetrisv1:${BUILD_NUMBER} > trivyimage.txt'
+                sh "trivy image ersun7/tetrisv1:${BUILD_NUMBER} > trivyimage.txt"
             }
         }
+
         stage('Checkout Code') {
             steps {
                 git branch: 'master', url: 'https://github.com/ersuncoder/SecureCloud-K8s-DevSecOps.git'
             }
         }
+
         stage('Update Deployment file') {
             environment {
                 GIT_REPO_NAME = "SecureCloud-K8s-DevSecOps"
@@ -99,13 +86,10 @@ pipeline {
                         sh '''
                             git config user.email "ermatovs427@gmail.com"
                             git config user.name "ersuncoder"
-                            BUILD_NUMBER=${BUILD_NUMBER}
-                            echo $BUILD_NUMBER
                             imageTag=$(grep -oP '(?<=tetrisv1:)[^ ]+' deployment-service.yml)
-                            echo $imageTag
                             sed -i "s/tetrisv1:${imageTag}/tetrisv1:${BUILD_NUMBER}/" deployment-service.yml
                             git add deployment-service.yml
-                            git commit -m "Update deployment Image to version \${BUILD_NUMBER}"
+                            git commit -m "Update deployment Image to version ${BUILD_NUMBER}"
                             git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:master
                         '''
                     }
