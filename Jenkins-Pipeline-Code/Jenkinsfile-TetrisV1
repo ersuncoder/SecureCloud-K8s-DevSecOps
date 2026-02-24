@@ -73,14 +73,14 @@ pipeline {
                 script {
                     withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
                         sh 'docker tag tetrisv1 ersun7:${BUILD_NUMBER}'
-                        sh 'docker push ersun7:${BUILD_NUMBER}'
+                        sh 'docker push ersun7/tetrisv1:${BUILD_NUMBER}'
                     }
                 }
             }
         }
         stage("TRIVY Image Scan") {
             steps {
-                sh 'trivy image ersun7:${BUILD_NUMBER} > trivyimage.txt'
+                sh 'trivy image ersun7/tetrisv1:${BUILD_NUMBER} > trivyimage.txt'
             }
         }
         stage('Checkout Code') {
