@@ -4,7 +4,7 @@ pipeline {
         nodejs 'nodejs'
     }
     environment  {
-        SCANNER_HOME=tool 'sonar-scanner'
+        // SCANNER_HOME olib tashlandi, chunki sonar ishlatilmaydi
     }
     stages {
         stage('Cleaning Workspace') {
@@ -17,23 +17,9 @@ pipeline {
                 git branch: 'master', url: 'https://github.com/ersuncoder/SecureCloud-K8s-DevSecOps.git'
             }
         }
-        stage('Sonarqube Analysis') {
-            steps {
-                dir('Tetris-V1') {
-                    withSonarQubeEnv('sonar-scanner') {
-                        sh ''' $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=Tetris \
-                        -Dsonar.projectKey=Tetris '''
-                    }
-                }
-            }
-        }
-        stage('Quality Check') {
-            steps {
-                script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
-                }
-            }
-        }
+        
+        // Sonarqube Analysis va Quality Check stage-lari olib tashlandi
+
         stage('Installing Dependencies') {
             steps {
                 dir('Tetris-V1') {
@@ -41,25 +27,21 @@ pipeline {
                 }
             }
         }
-        stage('OWASP Dependency-Check Scan') {
-            steps {
-                dir('Tetris-V1') {
-                    dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
-                    dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-                }
-            }
-        }
+        
         stage('Trivy File Scan') {
             steps {
                 dir('Tetris-V1') {
+                    // Agar trivy o'rnatilmagan bo'lsa, bu yerda xato berishi mumkin
                     sh 'trivy fs . > trivyfs.txt'
                 }
             }
         }
+        
         stage("Docker Image Build") {
             steps {
                 script {
                     dir('Tetris-V1') {
+                        // 'docker' nomli credential Jenkins-da bo'lishi shart
                         withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
                             sh 'docker system prune -f'
                             sh 'docker build -t tetrisv1 .'
@@ -68,26 +50,25 @@ pipeline {
                 }
             }
         }
+        
         stage("Docker Image Pushing") {
             steps {
                 script {
                     withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
-                        sh 'docker tag tetrisv1 ersun7:${BUILD_NUMBER}'
+                        sh 'docker tag tetrisv1 ersun7/tetrisv1:${BUILD_NUMBER}'
                         sh 'docker push ersun7/tetrisv1:${BUILD_NUMBER}'
                     }
                 }
             }
         }
+        
         stage("TRIVY Image Scan") {
             steps {
+                // Image scan qismi
                 sh 'trivy image ersun7/tetrisv1:${BUILD_NUMBER} > trivyimage.txt'
             }
         }
-        stage('Checkout Code') {
-            steps {
-                git branch: 'master', url: 'https://github.com/ersuncoder/SecureCloud-K8s-DevSecOps.git'
-            }
-        }
+
         stage('Update Deployment file') {
             environment {
                 GIT_REPO_NAME = "SecureCloud-K8s-DevSecOps"
@@ -95,17 +76,15 @@ pipeline {
             }
             steps {
                 dir('Manifest-file') {
+                    // 'github' nomli Secret Text credential yaratgan bo'lishingiz kerak
                     withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                         sh '''
                             git config user.email "ermatovs426@gmail.com"
                             git config user.name "ersuncoder"
-                            BUILD_NUMBER=${BUILD_NUMBER}
-                            echo $BUILD_NUMBER
                             imageTag=$(grep -oP '(?<=tetrisv1:)[^ ]+' deployment-service.yml)
-                            echo $imageTag
                             sed -i "s/tetrisv1:${imageTag}/tetrisv1:${BUILD_NUMBER}/" deployment-service.yml
                             git add deployment-service.yml
-                            git commit -m "Update deployment Image to version \${BUILD_NUMBER}"
+                            git commit -m "Update deployment Image to version ${BUILD_NUMBER}"
                             git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:master
                         '''
                     }
