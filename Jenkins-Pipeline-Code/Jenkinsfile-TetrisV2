@@ -16,24 +16,20 @@ pipeline {
             }
         }
 
-        // Sonarqube Analysis va Quality Check bosqichlari olib tashlandi
-
-       stage('Installing Dependencies') {
+        stage('Installing Dependencies') {
             steps {
                 dir('Tetris-V1') {
-                    // Bu yerda 'sh' so'zini 'bat' ga o'zgartirdik
+                    // Windows uchun 'bat' ishlatiladi
                     bat 'npm install'
                 }
             }
         }
 
-        // OWASP Dependency-Check ham qo'shimcha plagin talab qilgani uchun olib tashlandi
-
         stage('Trivy File Scan') {
             steps {
-                dir('Tetris-V2') {
-                    // Diqqat: Trivy o'rnatilgan bo'lishi kerak
-                    sh 'trivy fs . > trivyfs.txt'
+                dir('Tetris-V1') {
+                    // Diqqat: Trivy Windowsga o'rnatilgan bo'lishi kerak
+                    bat 'trivy fs . > trivyfs.txt'
                 }
             }
         }
@@ -41,10 +37,10 @@ pipeline {
         stage("Docker Image Build") {
             steps {
                 script {
-                    dir('Tetris-V2') {
+                    dir('Tetris-V1') {
                         withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
-                            sh 'docker system prune -f'
-                            sh 'docker build -t tetrisv1 .'
+                            bat 'docker system prune -f'
+                            bat 'docker build -t tetrisv1 .'
                         }
                     }
                 }
@@ -55,8 +51,8 @@ pipeline {
             steps {
                 script {
                     withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
-                        sh "docker tag tetrisv1 ersun7/tetrisv1:${BUILD_NUMBER}"
-                        sh "docker push ersun7/tetrisv1:${BUILD_NUMBER}"
+                        bat "docker tag tetrisv1 ersun7/tetrisv1:${BUILD_NUMBER}"
+                        bat "docker push ersun7/tetrisv1:${BUILD_NUMBER}"
                     }
                 }
             }
@@ -64,7 +60,7 @@ pipeline {
 
         stage("TRIVY Image Scan") {
             steps {
-                sh "trivy image ersun7/tetrisv1:${BUILD_NUMBER} > trivyimage.txt"
+                bat "trivy image ersun7/tetrisv1:${BUILD_NUMBER} > trivyimage.txt"
             }
         }
 
@@ -82,15 +78,14 @@ pipeline {
             steps {
                 dir('Manifest-file') {
                     withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
-                        sh '''
+                        // Windowsda 'sed' komandasi bo'lmasligi mumkin, shuning uchun git buyruqlarini bat orqali beramiz
+                        bat """
                             git config user.email "ermatovs427@gmail.com"
                             git config user.name "ersuncoder"
-                            imageTag=$(grep -oP '(?<=tetrisv1:)[^ ]+' deployment-service.yml)
-                            sed -i "s/tetrisv1:${imageTag}/tetrisv1:${BUILD_NUMBER}/" deployment-service.yml
                             git add deployment-service.yml
                             git commit -m "Update deployment Image to version ${BUILD_NUMBER}"
                             git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:master
-                        '''
+                        """
                     }
                 }
             }
