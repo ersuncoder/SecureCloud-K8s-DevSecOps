@@ -3,9 +3,7 @@ pipeline {
     tools {
         nodejs 'nodejs'
     }
-    environment  {
-        // SonarScanner muhiti olib tashlandi
-    }
+   
     stages {
         stage('Cleaning Workspace') {
             steps {
