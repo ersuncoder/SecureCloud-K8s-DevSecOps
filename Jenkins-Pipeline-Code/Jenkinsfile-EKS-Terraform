@@ -10,11 +10,13 @@ pipeline {
     stages {
         stage('Checkout from Git') {
             steps {
-                git branch: 'master', url: 'https://github.com/AmanPathak-DevOps/End-to-End-Kubernetes-DevSecOps-Tetris-Project.git'
+                // Sizning yangi repository manzilingiz
+                git branch: 'master', url: 'https://github.com/ersuncoder/SecureCloud-K8s-DevSecOps.git'
             }
         }
         stage('Initializing Terraform') {
             steps {
+                // 'aws-key' bu Jenkins Credentials'dagi ID nomi bo'lishi kerak
                 withAWS(credentials: 'aws-key', region: 'us-east-1') {
                 dir('EKS-TF') {
                     script {
@@ -50,14 +52,16 @@ pipeline {
             steps {
                 withAWS(credentials: 'aws-key', region: 'us-east-1') {
                 script {
-                    echo "${params.'Terraform-Action'}"
+                    echo "Selected Action: ${params.'Terraform-Action'}"
                     dir('EKS-TF') {
                         script {
                             if (params.'Terraform-Action' == 'plan') {
                                 sh "terraform plan -var-file=${params.'File-Name'}"
                             } else if (params.'Terraform-Action' == 'apply') {
+                                // -auto-approve avtomatlashtirish uchun shart
                                 sh "terraform apply -auto-approve -var-file=${params.'File-Name'}"
                             } else if (params.'Terraform-Action' == 'destroy') {
+                                // Klasterni o'chirish uchun
                                 sh "terraform destroy -auto-approve -var-file=${params.'File-Name'}"
                             } else {
                                 error "Invalid value for Terraform-Action: ${params.'Terraform-Action'}"
