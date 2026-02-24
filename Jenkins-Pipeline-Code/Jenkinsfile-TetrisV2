@@ -18,10 +18,11 @@ pipeline {
 
         // Sonarqube Analysis va Quality Check bosqichlari olib tashlandi
 
-        stage('Installing Dependencies') {
+       stage('Installing Dependencies') {
             steps {
-                dir('Tetris-V2') {
-                    sh 'npm install'
+                dir('Tetris-V1') {
+                    // Bu yerda 'sh' so'zini 'bat' ga o'zgartirdik
+                    bat 'npm install'
                 }
             }
         }
