@@ -10,65 +10,62 @@ pipeline {
     stages {
         stage('Checkout from Git') {
             steps {
-                // Sizning yangi repository manzilingiz
                 git branch: 'master', url: 'https://github.com/ersuncoder/SecureCloud-K8s-DevSecOps.git'
             }
         }
         stage('Initializing Terraform') {
             steps {
-                // 'aws-key' bu Jenkins Credentials'dagi ID nomi bo'lishi kerak
+                // Jenkins Credentials-da 'aws-key' yaratilgan bo'lishi kerak
                 withAWS(credentials: 'aws-key', region: 'us-east-1') {
-                dir('EKS-TF') {
-                    script {
-                        sh 'terraform init'
+                    dir('EKS-TF') {
+                        script {
+                            // 'sh' o'rniga 'bat'
+                            bat 'terraform init'
+                        }
                     }
-                }
                 }
             }
         }
         stage('Validate Terraform Code') {
             steps {
                 withAWS(credentials: 'aws-key', region: 'us-east-1') {
-                dir('EKS-TF') {
-                    script {
-                        sh 'terraform validate'
+                    dir('EKS-TF') {
+                        script {
+                            bat 'terraform validate'
+                        }
                     }
-                }
                 }
             }
         }
         stage('Terraform Plan') {
             steps {
                 withAWS(credentials: 'aws-key', region: 'us-east-1') {
-                dir('EKS-TF') {
-                    script {
-                        sh "terraform plan -var-file=${params.'File-Name'}"
+                    dir('EKS-TF') {
+                        script {
+                            // Parametrlarni bat ichida ishlatish
+                            bat "terraform plan -var-file=${params.'File-Name'}"
+                        }
                     }
-                }
                 }
             }
         }
         stage('Terraform Action') {
             steps {
                 withAWS(credentials: 'aws-key', region: 'us-east-1') {
-                script {
-                    echo "Selected Action: ${params.'Terraform-Action'}"
                     dir('EKS-TF') {
                         script {
+                            echo "Selected Action: ${params.'Terraform-Action'}"
                             if (params.'Terraform-Action' == 'plan') {
-                                sh "terraform plan -var-file=${params.'File-Name'}"
+                                bat "terraform plan -var-file=${params.'File-Name'}"
                             } else if (params.'Terraform-Action' == 'apply') {
-                                // -auto-approve avtomatlashtirish uchun shart
-                                sh "terraform apply -auto-approve -var-file=${params.'File-Name'}"
+                                bat "terraform apply -auto-approve -var-file=${params.'File-Name'}"
                             } else if (params.'Terraform-Action' == 'destroy') {
-                                // Klasterni o'chirish uchun
-                                sh "terraform destroy -auto-approve -var-file=${params.'File-Name'}"
+                                bat "terraform destroy -auto-approve -var-file=${params.'File-Name'}"
                             } else {
                                 error "Invalid value for Terraform-Action: ${params.'Terraform-Action'}"
                             }
                         }
                     }
-                }
                 }
             }
         }
