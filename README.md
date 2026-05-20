@@ -1,10 +1,10 @@
 # SecureCloud-K8s-DevSecOps
 
 ## Bitiruv Malakaviy Ishi (BMI)
-**Mavzu:** Bulutli infratuzilmada xavfsiz va avtomatlashtirilgan konteyner orkestratsiyasi tizimini loyihalash va tadbiq etish (DevSecOps)
+**Mavzu:** Bulut infratuzilmasida xavfsiz va avtomatlashtirilgan konteyner orkestratsiya tizimini ishlab chiqish (DevSecOps)
 
 **Bajaruvchi:** Kompyuter injiniringi fakulteti 5-bosqich talabasi Sunnat Ermatov
-**Ta'lim muassasasi:** Toshkent universitetining axborot texnologiyalari (TATU)
+**Ta'lim muassasasi:** Toshkent axborot texnologiyalari universiteti (TATU)
 
 ---
 
