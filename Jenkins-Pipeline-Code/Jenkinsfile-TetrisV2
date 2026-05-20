@@ -1,0 +1,94 @@
+pipeline {
+    agent any
+    tools {
+        nodejs 'nodejs'
+    }
+   
+    stages {
+        stage('Cleaning Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+        stage('Checkout from Git') {
+            steps {
+                git branch: 'master', url: 'https://github.com/ersuncoder/SecureCloud-K8s-DevSecOps.git'
+            }
+        }
+
+        stage('Installing Dependencies') {
+            steps {
+                dir('Tetris-V1') {
+                    // Windows uchun 'bat' ishlatiladi
+                    bat 'npm install'
+                }
+            }
+        }
+
+        stage('Trivy File Scan') {
+            steps {
+                dir('Tetris-V1') {
+                    // Diqqat: Trivy Windowsga o'rnatilgan bo'lishi kerak
+                    bat 'trivy fs . > trivyfs.txt'
+                }
+            }
+        }
+
+        stage("Docker Image Build") {
+            steps {
+                script {
+                    dir('Tetris-V1') {
+                        withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                            bat 'docker system prune -f'
+                            bat 'docker build -t tetrisv1 .'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage("Docker Image Pushing") {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
+                        bat "docker tag tetrisv1 ersun7/tetrisv1:${BUILD_NUMBER}"
+                        bat "docker push ersun7/tetrisv1:${BUILD_NUMBER}"
+                    }
+                }
+            }
+        }
+
+        stage("TRIVY Image Scan") {
+            steps {
+                bat "trivy image ersun7/tetrisv1:${BUILD_NUMBER} > trivyimage.txt"
+            }
+        }
+
+        stage('Checkout Code') {
+            steps {
+                git branch: 'master', url: 'https://github.com/ersuncoder/SecureCloud-K8s-DevSecOps.git'
+            }
+        }
+
+        stage('Update Deployment file') {
+            environment {
+                GIT_REPO_NAME = "SecureCloud-K8s-DevSecOps"
+                GIT_USER_NAME = "ersuncoder"
+            }
+            steps {
+                dir('Manifest-file') {
+                    withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
+                        // Windowsda 'sed' komandasi bo'lmasligi mumkin, shuning uchun git buyruqlarini bat orqali beramiz
+                        bat """
+                            git config user.email "ermatovs427@gmail.com"
+                            git config user.name "ersuncoder"
+                            git add deployment-service.yml
+                            git commit -m "Update deployment Image to version ${BUILD_NUMBER}"
+                            git push https://${GITHUB_TOKEN}@github.com/${GIT_USER_NAME}/${GIT_REPO_NAME} HEAD:master
+                        """
+                    }
+                }
+            }
+        }
+    }
+}

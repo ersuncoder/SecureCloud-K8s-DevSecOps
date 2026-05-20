@@ -1,0 +1,73 @@
+properties([
+    parameters([
+        string(defaultValue: 'variables.tfvars', description: 'Specify the file name', name: 'File-Name'),
+        choice(choices: ['plan', 'apply', 'destroy'], description: 'Select Terraform action', name: 'Terraform-Action')
+    ])
+])
+
+pipeline {
+    agent any
+    stages {
+        stage('Checkout from Git') {
+            steps {
+                git branch: 'master', url: 'https://github.com/ersuncoder/SecureCloud-K8s-DevSecOps.git'
+            }
+        }
+        stage('Initializing Terraform') {
+            steps {
+                // Jenkins Credentials-da 'aws-key' yaratilgan bo'lishi kerak
+                withAWS(credentials: 'aws-key', region: 'us-east-1') {
+                    dir('EKS-TF') {
+                        script {
+                            // 'sh' o'rniga 'bat'
+                            bat 'terraform init'
+                        }
+                    }
+                }
+            }
+        }
+        stage('Validate Terraform Code') {
+            steps {
+                withAWS(credentials: 'aws-key', region: 'us-east-1') {
+                    dir('EKS-TF') {
+                        script {
+                            bat 'terraform validate'
+                        }
+                    }
+                }
+            }
+        }
+        stage('Terraform Plan') {
+            steps {
+                withAWS(credentials: 'aws-key', region: 'us-east-1') {
+                    dir('EKS-TF') {
+                        script {
+                            // Parametrlarni bat ichida ishlatish
+                            bat "terraform plan -var-file=${params.'File-Name'}"
+                        }
+                    }
+                }
+            }
+        }
+        stage('Terraform Action') {
+            steps {
+                withAWS(credentials: 'aws-key', region: 'us-east-1') {
+                    dir('EKS-TF') {
+                        script {
+                            echo "Selected Action: ${params.'Terraform-Action'}"
+                            if (params.'Terraform-Action' == 'plan') {
+                                bat "terraform plan -var-file=${params.'File-Name'}"
+                            } else if (params.'Terraform-Action' == 'apply') {
+                                bat "terraform apply -auto-approve -var-file=${params.'File-Name'}"
+                            } else if (params.'Terraform-Action' == 'destroy') {
+                                bat "terraform destroy -auto-approve -var-file=${params.'File-Name'}"
+                            } else {
+                                error "Invalid value for Terraform-Action: ${params.'Terraform-Action'}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
