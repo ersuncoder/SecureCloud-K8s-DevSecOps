@@ -8,6 +8,12 @@
 
 ---
 
+## Tizimning umumiy arxitekturasi (DevSecOps Workflow)
+
+![Loyiha Infratuzilmasi](assets/Infra.gif)
+
+---
+
 ## Loyiha haqida umumiy ma'lumot
 Ushbu loyihada an'anaviy ishlab chiqarish (production) muhitlaridagi dasturiy ta'minotni yetkazib berish zanjirini kiberhujumlardan himoya qilish, statik va dinamik tahlil tizimlarini avtomatlashtirish hamda Kubernetes klasteri xavfsizligini ta'minlash infratuzilmasi qurilgan. Loyihada namuna sifatida mikroxizmatlar arxitekturasidagi dastur olinib, uning atrofiga "Shift Left Security" prinsiplari asosida himoya qatlamlari loyihalashtirilgan.
 
