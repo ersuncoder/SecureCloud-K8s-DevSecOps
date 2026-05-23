@@ -77,25 +77,27 @@ pipeline {
             }
             steps {
                 dir('Manifest-file') {
-                    // GitHub-ga yozish uchun 'github' ID-li Secret Text ishlatiladi
                     withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                         bat """
                             @echo off
-                            :: 1. AVTOMATLASHTIRISH: deployment-service.yml ichidagi image versiyasini yangilash
+                            :: 1. Avtomatlashtirish: faylni yangilash
                             powershell -Command "(Get-Content deployment-service.yml) -replace 'tetrisv1:[0-9]+', 'tetrisv1:${BUILD_NUMBER}' | Set-Content deployment-service.yml"
 
                             :: 2. Git sozlamalari
                             git config user.email "ermatovs426@gmail.com"
                             git config user.name "ersuncoder"
                             
-                            :: 3. O'zgarishlarni GitHub-ga yuklash
+                            :: 3. O'zgarishlarni indekslash va commit qilish
                             git add deployment-service.yml
                             git commit -m "Update deployment Image to version ${BUILD_NUMBER}"
                             
-                            :: 4. Konflikt bo'lmasligi uchun GitHub'dagi oxirgi o'zgarishlarni olib birlashtiramiz
-                            git pull https://%GITHUB_TOKEN%@github.com/%GIT_USER_NAME%/%GIT_REPO_NAME%.git main --rebase
+                            :: 4. Agar boshqa vaqtinchalik o'zgarishlar bo'lsa, ularni tozalaymiz (unstaged o'zgarishlar muammosini yo'qotadi)
+                            git stash --include-untracked
                             
-                            :: 5. To'g'ri branchga (main) push qilamiz
+                            :: 5. GitHub'dagi so'nggi holatni tortamiz (oddiy pull orqali birlashtirish)
+                            git pull https://%GITHUB_TOKEN%@github.com/%GIT_USER_NAME%/%GIT_REPO_NAME%.git main
+                            
+                            :: 6. Push qilamiz
                             git push https://%GITHUB_TOKEN%@github.com/%GIT_USER_NAME%/%GIT_REPO_NAME%.git main
                         """
                     }
