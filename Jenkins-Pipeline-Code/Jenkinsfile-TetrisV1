@@ -70,7 +70,7 @@ pipeline {
             }
         }
 
-       stage('Update Deployment file') {
+        stage('Update Deployment file') {
             environment {
                 GIT_REPO_NAME = "SecureCloud-K8s-DevSecOps"
                 GIT_USER_NAME = "ersuncoder"
@@ -102,6 +102,7 @@ pipeline {
                 }
             }
         }
+    }
     
     post {
         always {
