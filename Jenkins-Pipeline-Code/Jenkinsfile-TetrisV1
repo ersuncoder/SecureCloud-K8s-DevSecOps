@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     tools {
-        nodejs 'nodejs' // Jenkins "Global Tool Configuration"da shu nom bilan qo'shilgan bo'lishi kerak
+        nodejs 'nodejs'
     }
     
     stages {
@@ -14,7 +14,8 @@ pipeline {
 
         stage('Checkout from Git') {
             steps {
-                // Loyihani GitHub-dan tortib olish
+                // Windows va Linux o'rtasidagi LF/CRLF ogohlantirishlarini butunlay o'chiramiz
+                bat 'git config --global core.autocrlf false'
                 git branch: 'main', url: 'https://github.com/ersuncoder/SecureCloud-K8s-DevSecOps.git'
             }
         }
@@ -22,7 +23,6 @@ pipeline {
         stage('Installing Dependencies') {
             steps {
                 dir('Tetris-V1') {
-                    // Node.js kutubxonalarini o'rnatish
                     bat 'npm install'
                 }
             }
@@ -31,7 +31,6 @@ pipeline {
         stage('Trivy File Scan') {
             steps {
                 dir('Tetris-V1') {
-                    // Fayllarni xavfsizlikka (vulnerabilities) tekshirish
                     bat 'trivy fs . > trivyfs.txt'
                 }
             }
@@ -41,7 +40,6 @@ pipeline {
             steps {
                 script {
                     dir('Tetris-V1') {
-                        // Docker Registry-ga ulanish (DockerHub credentials ID: 'docker')
                         withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
                             bat 'docker system prune -f'
                             bat 'docker build -t tetrisv1 .'
@@ -55,7 +53,6 @@ pipeline {
             steps {
                 script {
                     withDockerRegistry(credentialsId: 'docker', toolName: 'docker') {
-                        // Image-ni yangi Build raqami bilan taglash va push qilish
                         bat "docker tag tetrisv1 ersun7/tetrisv1:${BUILD_NUMBER}"
                         bat "docker push ersun7/tetrisv1:${BUILD_NUMBER}"
                     }
@@ -65,7 +62,6 @@ pipeline {
         
         stage("TRIVY Image Scan") {
             steps {
-                // Yaratilgan Docker Image-ni xavfsizlikka tekshirish
                 bat "trivy image ersun7/tetrisv1:${BUILD_NUMBER} > trivyimage.txt"
             }
         }
@@ -80,24 +76,25 @@ pipeline {
                     withCredentials([string(credentialsId: 'github', variable: 'GITHUB_TOKEN')]) {
                         bat """
                             @echo off
-                            :: 1. Avtomatlashtirish: faylni yangilash
+                            :: 1. Avtomatlashtirish: deployment-service.yml faylini yangilash
                             powershell -Command "(Get-Content deployment-service.yml) -replace 'tetrisv1:[0-9]+', 'tetrisv1:${BUILD_NUMBER}' | Set-Content deployment-service.yml"
 
                             :: 2. Git sozlamalari
                             git config user.email "ermatovs426@gmail.com"
                             git config user.name "ersuncoder"
                             
-                            :: 3. O'zgarishlarni indekslash va commit qilish
+                            :: 3. Git-ga node_modules va keraksiz txt fayllarni vaqtincha e'tiborsiz qoldirishni aytamiz
+                            :: Bu buyruq 1 soatlab tekshirish va qulflangan fayllar xatoligini oldini oladi
+                            git config core.excludesfile .gitignore
+                            
+                            :: 4. Faqatgina biz o'zgartirgan deployment faylini indekslaymiz
                             git add deployment-service.yml
                             git commit -m "Update deployment Image to version ${BUILD_NUMBER}"
                             
-                            :: 4. Agar boshqa vaqtinchalik o'zgarishlar bo'lsa, ularni tozalaymiz (unstaged o'zgarishlar muammosini yo'qotadi)
-                            git stash --include-untracked
+                            :: 5. Toza va xavfsiz pull (rebase-siz va stash-siz)
+                            git pull https://%GITHUB_TOKEN%@github.com/%GIT_USER_NAME%/%GIT_REPO_NAME%.git main --no-rebase
                             
-                            :: 5. GitHub'dagi so'nggi holatni tortamiz (oddiy pull orqali birlashtirish)
-                            git pull https://%GITHUB_TOKEN%@github.com/%GIT_USER_NAME%/%GIT_REPO_NAME%.git main
-                            
-                            :: 6. Push qilamiz
+                            :: 6. GitHub-ga push
                             git push https://%GITHUB_TOKEN%@github.com/%GIT_USER_NAME%/%GIT_REPO_NAME%.git main
                         """
                     }
@@ -111,7 +108,7 @@ pipeline {
             echo 'Pipeline jarayoni yakunlandi.'
         }
         success {
-            echo 'Muvaffaqiyatli yakunlandi: Barcha xavfsizlik va avtomatlashtirish bosqichlari o\'tdi!'
+            echo 'Muvaffaqiyatli yakunlandi!'
         }
         failure {
             echo 'Xatolik yuz berdi. Iltimos, loglarni tekshiring.'
