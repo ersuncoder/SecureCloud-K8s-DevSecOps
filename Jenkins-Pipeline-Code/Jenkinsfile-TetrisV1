@@ -70,7 +70,7 @@ pipeline {
             }
         }
 
-        stage('Update Deployment file') {
+       stage('Update Deployment file') {
             environment {
                 GIT_REPO_NAME = "SecureCloud-K8s-DevSecOps"
                 GIT_USER_NAME = "ersuncoder"
@@ -88,16 +88,20 @@ pipeline {
                             git config user.email "ermatovs426@gmail.com"
                             git config user.name "ersuncoder"
                             
-                            :: 3. O'zgarishlarni GitHub-ga yuklash (Continuous Deployment asosi)
+                            :: 3. O'zgarishlarni GitHub-ga yuklash
                             git add deployment-service.yml
                             git commit -m "Update deployment Image to version ${BUILD_NUMBER}"
-                            git push https://%GITHUB_TOKEN%@github.com/%GIT_USER_NAME%/%GIT_REPO_NAME% HEAD:master
+                            
+                            :: 4. Konflikt bo'lmasligi uchun GitHub'dagi oxirgi o'zgarishlarni olib birlashtiramiz
+                            git pull https://%GITHUB_TOKEN%@github.com/%GIT_USER_NAME%/%GIT_REPO_NAME%.git main --rebase
+                            
+                            :: 5. To'g'ri branchga (main) push qilamiz
+                            git push https://%GITHUB_TOKEN%@github.com/%GIT_USER_NAME%/%GIT_REPO_NAME%.git main
                         """
                     }
                 }
             }
         }
-    }
     
     post {
         always {
