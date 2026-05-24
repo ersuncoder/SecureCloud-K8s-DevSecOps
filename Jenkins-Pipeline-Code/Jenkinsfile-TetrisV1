@@ -38,17 +38,17 @@ pipeline {
 
         // 🔥 SONARQUBE BOSQICHI SHU YERGA QO'SHILDI:
         stage('SonarQube Code Analysis') {
-    steps {
-        dir('Tetris-V1') {
-            withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                bat """
-                    "C:\\ProgramData\\Jenkins\\.jenkins\\tools\\hudson.plugins.sonar.SonarRunnerInstallation\\sonar-scanner\\bin\\sonar-scanner.bat" ^
-                    -Dsonar.token=%SONAR_TOKEN%
-                """
+            steps {
+                dir('Tetris-V1') {
+                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                        bat """
+                        "C:\\ProgramData\\Jenkins\\.jenkins\\tools\\hudson.plugins.sonar.SonarRunnerInstallation\\sonar-scanner\\bin\\sonar-scanner.bat" ^
+                        -Dsonar.token=%SONAR_TOKEN%
+                        """
+                    }
+                }
             }
         }
-    }
-}
         
         stage("Docker Image Build") {
             steps {
