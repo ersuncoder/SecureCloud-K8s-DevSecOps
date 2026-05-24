@@ -16,7 +16,7 @@ spec:
       containers:
       - name: tetris
         # 'latest' o'rniga raqam qo'yildi, Jenkins endi buni topib yangilay oladi
-        image: ersun7/tetrisv1:50
+        image: ersun7/tetrisv1:57
         ports:
         - containerPort: 3000
 ---
